@@ -123,6 +123,10 @@ def create_or_update_risk_plan():
     risk_plan.forex_assets = data.get('forexAssets')
     risk_plan.has_account = data.get('hasAccount')
     risk_plan.experience = data.get('experience')
+    risk_plan.prop_firm = data.get('propFirm')
+    risk_plan.account_type = data.get('accountType')
+    risk_plan.account_size = data.get('accountSize')
+    risk_plan.risk_percentage = data.get('riskPercentage')
 
     # Risk Parameters
     risk_plan.max_daily_risk = data.get('maxDailyRisk')

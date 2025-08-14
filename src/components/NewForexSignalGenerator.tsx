@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Zap, TrendingUp, TrendingDown, Activity, Globe, Settings, Play, Pause, RefreshCw } from 'lucide-react';
+import api from '../api';
 
 interface ForexSignal {
   id: string;
@@ -98,7 +99,7 @@ const NewForexSignalGenerator: React.FC<NewForexSignalGeneratorProps> = ({ isBot
     }
   };
 
-  const processSignal = (signal: any) => {
+  const processSignal = async (signal: any) => {
     const formattedSignal: ForexSignal = {
       id: `forex-signal-${signal.symbol}-${signal.timeframe}-${Date.now()}`,
       symbol: signal.symbol,
@@ -118,55 +119,41 @@ const NewForexSignalGenerator: React.FC<NewForexSignalGeneratorProps> = ({ isBot
       market: 'forex',
     };
 
-    const existingSignals = JSON.parse(localStorage.getItem('admin_generated_signals') || '[]');
-    const signalKey = `${formattedSignal.symbol}-${formattedSignal.timeframe}-${formattedSignal.signalType}-${formattedSignal.entryPrice}-${formattedSignal.stopLoss}-${formattedSignal.takeProfit}`;
-    const isDuplicate = existingSignals.some((s: any) => `${s.symbol}-${s.timeframe}-${s.signalType}-${s.entryPrice}-${s.stopLoss}-${s.takeProfit}` === signalKey);
+    try {
+      await api.post('/trades', {
+        pair: formattedSignal.symbol,
+        type: formattedSignal.signalType,
+        entry: formattedSignal.entryPrice,
+        stopLoss: formattedSignal.stopLoss,
+        takeProfit: [formattedSignal.takeProfit],
+        id: formattedSignal.id,
+      });
 
-    if (!isDuplicate) {
-        const signalForStorage = {
-          ...formattedSignal,
-          timestamp: formattedSignal.timestamp.toISOString()
-        };
-        existingSignals.unshift(signalForStorage);
-        localStorage.setItem('admin_generated_signals', JSON.stringify(existingSignals.slice(0, 100)));
-        
-        const signalForUser = {
-          id: Date.now(),
-          text: `${signal.symbol}\n${signal.signalType} NOW\nEntry ${signal.entryPrice}\nStop Loss ${signal.stopLoss}\nTake Profit ${signal.takeProfit}\nConfidence ${signal.confidence}%\n\n${signal.analysis}`,
-          timestamp: formattedSignal.timestamp.toISOString(),
-          from: 'Forex Signal Generator',
-          chat_id: 1,
-          message_id: Date.now(),
-          update_id: Date.now()
-        };
-        
-        const existingMessages = JSON.parse(localStorage.getItem('telegram_messages') || '[]');
-        existingMessages.unshift(signalForUser);
-        localStorage.setItem('telegram_messages', JSON.stringify(existingMessages.slice(0, 100)));
+      setStats(prev => ({
+        ...prev,
+        liveSignals: prev.liveSignals + 1,
+        activeSignals: prev.activeSignals + 1,
+        bosCount: prev.bosCount + (signal.confirmations.some((c: string) => c.includes('BOS')) ? 1 : 0),
+        chochCount: prev.chochCount + (signal.confirmations.some((c: string) => c.includes('CHoCH')) ? 1 : 0),
+        orderBlocks: prev.orderBlocks + (signal.confirmations.some((c: string) => c.includes('Order Block')) ? 1 : 0),
+        fvgCount: prev.fvgCount + (signal.confirmations.some((c: string) => c.includes('Fair Value Gap')) ? 1 : 0)
+      }));
 
-        setStats(prev => ({
-          ...prev,
-          liveSignals: prev.liveSignals + 1,
-          activeSignals: prev.activeSignals + 1,
-          bosCount: prev.bosCount + (signal.confirmations.some((c: string) => c.includes('BOS')) ? 1 : 0),
-          chochCount: prev.chochCount + (signal.confirmations.some((c: string) => c.includes('CHoCH')) ? 1 : 0),
-          orderBlocks: prev.orderBlocks + (signal.confirmations.some((c: string) => c.includes('Order Block')) ? 1 : 0),
-          fvgCount: prev.fvgCount + (signal.confirmations.some((c: string) => c.includes('Fair Value Gap')) ? 1 : 0)
-        }));
-
-        setSignals(prev => {
-            const newSignals = [formattedSignal, ...prev.slice(0, 19)];
-            const uniqueSignals = Array.from(new Map(newSignals.map(item => [`${item.symbol}-${item.timeframe}-${item.signalType}-${item.entryPrice}-${item.stopLoss}-${item.takeProfit}`, item])).values());
-            return uniqueSignals;
-        });
-        
-        addLog(`🎯 ${formattedSignal.signalType} signal for ${formattedSignal.symbol}: Confidence: ${formattedSignal.confidence}%`, 'success');
-        
-        window.dispatchEvent(new CustomEvent('newSignalGenerated', { 
-          detail: signalForStorage 
-        }));
+      setSignals(prev => {
+          const newSignals = [formattedSignal, ...prev.slice(0, 19)];
+          const uniqueSignals = Array.from(new Map(newSignals.map(item => [`${item.symbol}-${item.timeframe}-${item.signalType}-${item.entryPrice}-${item.stopLoss}-${item.takeProfit}`, item])).values());
+          return uniqueSignals;
+      });
+      
+      addLog(`🎯 ${formattedSignal.signalType} signal for ${formattedSignal.symbol}: Confidence: ${formattedSignal.confidence}%`, 'success');
+      
+      window.dispatchEvent(new CustomEvent('newSignalGenerated', { 
+        detail: formattedSignal 
+      }));
+    } catch (error) {
+      console.error('Error saving signal:', error);
+      addLog(`❌ Error saving signal for ${formattedSignal.symbol}`, 'error');
     }
-    
   }
 
   const startAnalysis = async () => {

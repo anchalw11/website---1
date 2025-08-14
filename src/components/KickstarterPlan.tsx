@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Shield, UploadCloud, Mail } from 'lucide-react';
 import Header from './Header';
+import api from '../api';
 
 const KickstarterPlan = () => {
   const [email, setEmail] = useState('');
@@ -14,12 +15,24 @@ const KickstarterPlan = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email && screenshot) {
-      console.log('Submitting Kickstarter Application:', { email, screenshot: screenshot.name });
-      // Here you would typically handle the upload and form submission to a backend
-      setIsSubmitted(true);
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('screenshot', screenshot);
+
+      try {
+        await api.post('/upload-screenshot', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        setIsSubmitted(true);
+      } catch (error) {
+        console.error('Error uploading screenshot:', error);
+        alert('There was an error submitting your application. Please try again.');
+      }
     } else {
       alert('Please provide both an email and a screenshot.');
     }

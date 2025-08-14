@@ -223,8 +223,8 @@ const MembershipPlans = () => {
                   <p className="text-gray-400">Purchase a funded account through our affiliate links and get free access to our premium features for the specified duration.</p>
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium text-white mb-2">Do you offer refunds?</h3>
-                  <p className="text-gray-400">We offer a 30-day money-back guarantee if you're not satisfied with our service.</p>
+                  <h3 className="text-lg font-medium text-white mb-2">Can I cancel my subscription?</h3>
+                  <p className="text-gray-400">Yes, you can cancel your subscription at any time. Your access will continue until the end of the current billing period.</p>
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-white mb-2">What is multi account tracker?</h3>

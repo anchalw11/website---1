@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Users, RadioTower, Settings, LogOut, Cpu, Send } from 'lucide-react';
+import api from '../api';
 import SettingsModal from './SettingsModal';
 import FuturisticBackground from './FuturisticBackground';
 import FuturisticCursor from './FuturisticCursor';
@@ -43,10 +44,40 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [recentSignals, setRecentSignals] = useState<any[]>([]);
-  const [kickstarterSubmissions, setKickstarterSubmissions] = useState([
-    { id: 1, email: 'trader.joe@example.com', screenshotUrl: '/image.png', status: 'pending' },
-    { id: 2, email: 'jane.doe.trading@example.com', screenshotUrl: '/image.png', status: 'pending' },
-  ]);
+  const [kickstarterSubmissions, setKickstarterSubmissions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        const response = await api.get('/kickstarter-submissions');
+        setKickstarterSubmissions(response.data);
+      } catch (error) {
+        console.error('Error fetching kickstarter submissions:', error);
+      }
+    };
+
+    if (activeTab === 'kickstarter-approvals') {
+      fetchSubmissions();
+    }
+  }, [activeTab]);
+
+  const handleApprove = async (id: number) => {
+    try {
+      await api.post(`/kickstarter-submissions/${id}/approve`);
+      setKickstarterSubmissions(prev => prev.filter(s => s.id !== id));
+    } catch (error) {
+      console.error('Error approving submission:', error);
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    try {
+      await api.post(`/kickstarter-submissions/${id}/reject`);
+      setKickstarterSubmissions(prev => prev.filter(s => s.id !== id));
+    } catch (error) {
+      console.error('Error rejecting submission:', error);
+    }
+  };
 
   const handleSignalChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -233,8 +264,8 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
                         <a href={submission.screenshotUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:underline">View Screenshot</a>
                       </div>
                       <div className="flex space-x-3">
-                        <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Approve</button>
-                        <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Reject</button>
+                        <button onClick={() => handleApprove(submission.id)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Approve</button>
+                        <button onClick={() => handleReject(submission.id)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Reject</button>
                       </div>
                     </div>
                   ))}

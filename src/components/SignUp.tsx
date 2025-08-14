@@ -81,13 +81,16 @@ const SignUp = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Received error response text:", errorText); // Log the raw text
+        let errorMessage = 'An unexpected error occurred. Please try again later.';
         try {
           const errorData = JSON.parse(errorText);
-          throw new Error(errorData.msg || 'Failed to create account');
+          errorMessage = errorData.msg || 'Failed to create account. Please check your details and try again.';
         } catch (e) {
-          console.error("Failed to parse error response:", e); // Log parsing error
-          throw new Error('An unexpected error occurred. Please try again.');
+          // If parsing fails, use the raw text if it's not too long, otherwise use a generic message.
+          errorMessage = errorText.length < 100 ? errorText : 'An unexpected error occurred. Please try again later.';
+          console.error("Failed to parse error response, using raw text:", errorText);
         }
+        throw new Error(errorMessage);
       }
 
       const text = await response.text();
@@ -323,7 +326,7 @@ const SignUp = () => {
         <div className="mt-6 p-4 bg-gray-800/40 rounded-lg border border-gray-700">
           <div className="text-center text-xs text-gray-400">
             <p>🔒 Your data is encrypted and secure</p>
-            <p>30-day money-back guarantee • Cancel anytime</p>
+            <p>Cancel anytime</p>
           </div>
         </div>
         </div>

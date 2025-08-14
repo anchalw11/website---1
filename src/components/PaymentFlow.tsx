@@ -43,7 +43,9 @@ const PaymentFlow = () => {
   // Navigate to questionnaire only when payment is complete
   React.useEffect(() => {
     if (paymentComplete) {
-      navigate('/questionnaire');
+      setTimeout(() => {
+        navigate('/questionnaire');
+      }, 3000); // 3-second delay to show the message
     }
   }, [paymentComplete, navigate]);
 
@@ -88,13 +90,24 @@ const PaymentFlow = () => {
           </div>
 
           {/* Payment Integration */}
-          <PaymentIntegration 
-            selectedPlan={selectedPlan}
-            onPaymentComplete={handlePaymentComplete}
-          />
+          {paymentComplete ? (
+            <div className="text-center text-white">
+              <div className="w-16 h-16 border-4 border-t-4 border-green-500 border-solid rounded-full animate-spin mx-auto mb-4"></div>
+              <h3 className="text-2xl font-bold">Payment Successful!</h3>
+              <p className="text-lg mt-2">
+                Redirecting you to the questionnaire...
+              </p>
+            </div>
+          ) : (
+            <PaymentIntegration 
+              selectedPlan={selectedPlan}
+              onPaymentComplete={handlePaymentComplete}
+            />
+          )}
 
-          {/* Skip Payment Option */}
-          <div className="text-center mt-8">
+          {/* Confirmation Message */}
+          <div className="text-center mt-8 text-gray-400">
+            <p>After successful payment, you will proceed to the questionnaire.</p>
           </div>
         </div>
       </div>

@@ -23,6 +23,7 @@ class User(db.Model):
     plan_type = db.Column(db.String(20), nullable=False, default='free') # e.g., 'free', 'premium', 'enterprise'
     trades = db.relationship('Trade', backref='user', lazy=True)
     accounts = db.relationship('Account', backref='user', lazy=True)
+    risk_plan = db.relationship('RiskPlan', backref='user', uselist=False)
 
 class Trade(db.Model):
     __tablename__ = 'trades'
@@ -41,6 +42,7 @@ class Trade(db.Model):
     trade_duration = db.Column(db.String(50), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     outcome = db.Column(db.String(10), nullable=False)  # 'win', 'loss', or 'skipped'
+    status = db.Column(db.String(10), nullable=False, default='active') # 'active', 'taken', 'skipped'
     strategy_tag = db.Column(db.String(100), nullable=True)
     screenshot_url = db.Column(db.String(255), nullable=True)
 
@@ -102,6 +104,10 @@ class RiskPlan(db.Model):
     forex_assets = db.Column(db.JSON)
     has_account = db.Column(db.String)
     experience = db.Column(db.String)
+    prop_firm = db.Column(db.String)
+    account_type = db.Column(db.String)
+    account_size = db.Column(db.Float)
+    risk_percentage = db.Column(db.Float)
 
     # Risk Parameters
     max_daily_risk = db.Column(db.Float)
@@ -115,8 +121,6 @@ class RiskPlan(db.Model):
 
     # Prop Firm Compliance
     prop_firm_compliance = db.Column(db.JSON)
-
-    user = db.relationship('User', backref=db.backref('risk_plan', uselist=False))
 
     def __repr__(self):
         return f'<RiskPlan for User {self.user_id}>'

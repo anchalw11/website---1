@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import CustomSelect from './CustomSelect';
 import FuturisticBackground from './FuturisticBackground';
 import { useUser } from '../contexts/UserContext';
+import { propFirms } from '../data/propFirms';
+import api from '../api';
 
 interface QuestionnaireAnswers {
   tradesPerDay: string;
@@ -11,6 +13,10 @@ interface QuestionnaireAnswers {
   forexAssets: string[];
   hasAccount: 'yes' | 'no';
   accountEquity: number | string;
+  propFirm: string;
+  accountType: string;
+  accountSize: number | string;
+  riskPercentage: number;
 }
 
 const tradesPerDayOptions = [
@@ -64,12 +70,17 @@ const Questionnaire: React.FC = () => {
     forexAssets: [],
     hasAccount: 'no',
     accountEquity: '',
+    propFirm: '',
+    accountType: '',
+    accountSize: '',
+    riskPercentage: 1,
   });
   const [customPair, setCustomPair] = useState('');
   const [customPairs, setCustomPairs] = useState<string[]>(() => {
     const savedPairs = localStorage.getItem('customForexPairs');
     return savedPairs ? JSON.parse(savedPairs) : [];
   });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useUser();
 
@@ -79,10 +90,20 @@ const Questionnaire: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setIsLoading(true);
     localStorage.setItem('questionnaireAnswers', JSON.stringify(answers));
     console.log('User Answers:', answers);
-    navigate('/risk-management');
+
+    try {
+      await api.post('/risk-plan', answers);
+      navigate('/risk-management');
+    } catch (error) {
+      console.error('Failed to save risk plan:', error);
+      // Handle error appropriately in a real application
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -94,6 +115,55 @@ const Questionnaire: React.FC = () => {
         <p className="mb-8 text-center text-gray-400">Help us tailor your experience by answering a few questions.</p>
 
         <div className="space-y-6">
+          <div>
+            <label className="block mb-2 text-lg font-semibold text-gray-300">Prop Firm</label>
+            <CustomSelect
+              options={propFirms.map(firm => ({ value: firm.name, label: firm.name }))}
+              value={answers.propFirm}
+              onChange={(value) => setAnswers({ ...answers, propFirm: value as string, accountType: '', accountSize: '' })}
+              placeholder="Select a prop firm..."
+            />
+          </div>
+
+          {answers.propFirm && (
+            <>
+              <div>
+                <label className="block mb-2 text-lg font-semibold text-gray-300">Account Type</label>
+                <CustomSelect
+                  options={propFirms.find(firm => firm.name === answers.propFirm)?.accountTypes.map(type => ({ value: type, label: type })) || []}
+                  value={answers.accountType}
+                  onChange={(value) => setAnswers({ ...answers, accountType: value as string })}
+                  placeholder="Select an account type..."
+                />
+              </div>
+              <div>
+                <label className="block mb-2 text-lg font-semibold text-gray-300">Account Size</label>
+                <CustomSelect
+                  options={propFirms.find(firm => firm.name === answers.propFirm)?.accountSizes.map(size => ({ value: String(size), label: `$${size.toLocaleString()}` })) || []}
+                  value={String(answers.accountSize)}
+                  onChange={(value) => setAnswers({ ...answers, accountSize: Number(value) })}
+                  placeholder="Select an account size..."
+                />
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="block mb-2 text-lg font-semibold text-gray-300">Risk per Trade</label>
+            <div className="flex items-center space-x-4">
+              <input
+                type="range"
+                min="0.5"
+                max="2.5"
+                step="0.1"
+                value={answers.riskPercentage}
+                onChange={(e) => setAnswers({ ...answers, riskPercentage: parseFloat(e.target.value) })}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              />
+              <span className="text-lg font-semibold text-blue-400">{answers.riskPercentage.toFixed(1)}%</span>
+            </div>
+          </div>
+
           <div>
             <label className="block mb-2 text-lg font-semibold text-gray-300">How many trades do you take per day?</label>
             <CustomSelect
@@ -197,9 +267,10 @@ const Questionnaire: React.FC = () => {
 
         <button
           onClick={handleSubmit}
-          className="w-full mt-8 p-4 bg-blue-600 rounded-lg hover:bg-blue-700 transition-all duration-300 text-lg font-semibold shadow-lg hover:shadow-blue-500/50"
+          disabled={isLoading}
+          className="w-full mt-8 p-4 bg-blue-600 rounded-lg hover:bg-blue-700 transition-all duration-300 text-lg font-semibold shadow-lg hover:shadow-blue-500/50 disabled:bg-blue-800 disabled:cursor-not-allowed"
         >
-          Save Preferences & Continue
+          {isLoading ? 'Saving...' : 'Save Preferences & Continue'}
         </button>
         </div>
       </div>

@@ -25,92 +25,22 @@ const SignalsFeed: React.FC<SignalsFeedProps> = ({ onMarkAsTaken, onAddToJournal
   const [dailyLossLimitHit, setDailyLossLimitHit] = useState(false);
 
   useEffect(() => {
-    const loadSignals = () => {
+    const fetchSignals = async () => {
       try {
-        // Only load signals from admin dashboard - no prefilled signals
-        const adminSignals = JSON.parse(localStorage.getItem('telegram_messages') || '[]');
-        
-        // Only show signals if they exist from admin
-        if (adminSignals.length === 0) {
-          setSignals([]);
-          return;
-        }
-
-        // Convert admin messages to Signal format
-        const convertedSignals: Signal[] = adminSignals.map((msg: any) => {
-          const lines = msg.text.split('\n');
-          const pair = lines[0] || 'UNKNOWN';
-          const direction = lines[1]?.includes('BUY') ? 'LONG' : lines[1]?.includes('SELL') ? 'SHORT' : 'LONG';
-          
-          // Extract prices from text
-          const entryMatch = msg.text.match(/Entry\s+([0-9.]+)/i);
-          const slMatch = msg.text.match(/Stop Loss\s+([0-9.]+)/i);
-          const tpMatch = msg.text.match(/Take Profit\s+([0-9.,\s]+)/i);
-          const confidenceMatch = msg.text.match(/Confidence\s+([0-9]+)%/i);
-          
-          const entryPrice = entryMatch ? parseFloat(entryMatch[1]) : 0;
-          const stopLoss = slMatch ? parseFloat(slMatch[1]) : 0;
-          const takeProfit = tpMatch ? parseFloat(tpMatch[1].split(',')[0]) : 0;
-          const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 0;
-          
-          return {
-            id: msg.id.toString(),
-            pair,
-            direction,
-            entryPrice,
-            stopLoss,
-            takeProfit,
-            confidence,
-            riskRewardRatio: '1:2',
-            timestamp: msg.timestamp,
-            description: msg.text.split('\n\n')[1] || 'Professional trading signal',
-            market: 'forex',
-            status: 'active'
-          };
-        });
-        
-        setSignals(convertedSignals);
+        const response = await api.get('/signals');
+        setSignals(response.data);
       } catch (error) {
         console.error('Error fetching signals:', error);
         setSignals([]);
       }
     };
 
-    loadSignals();
-    
-    // Listen for new signals from admin
-    const handleNewSignal = () => {
-      loadSignals();
-    };
-    
-    window.addEventListener('newSignalSent', handleNewSignal);
-    
-    const interval = setInterval(loadSignals, 5000); // Refresh every 5 seconds
+    fetchSignals();
 
-    // const socket = io("http://localhost:3005");
-
-    // socket.on("newSignal", (newSignal) => {
-    //   const convertedSignal: Signal = {
-    //     id: newSignal.timestamp,
-    //     pair: newSignal.symbol,
-    //     direction: newSignal.signalType,
-    //     entryPrice: newSignal.entryPrice,
-    //     stopLoss: newSignal.stopLoss,
-    //     takeProfit: newSignal.takeProfit,
-    //     confidence: newSignal.confidence,
-    //     riskRewardRatio: newSignal.primaryRiskReward,
-    //     timestamp: newSignal.timestamp,
-    //     description: newSignal.analysis,
-    //     market: 'crypto',
-    //     status: 'active'
-    //   };
-    //   setSignals(prevSignals => [convertedSignal, ...prevSignals]);
-    // });
+    const interval = setInterval(fetchSignals, 5000); // Refresh every 5 seconds
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('newSignalSent', handleNewSignal);
-      // socket.disconnect();
     };
   }, []);
 
@@ -158,11 +88,6 @@ const SignalsFeed: React.FC<SignalsFeedProps> = ({ onMarkAsTaken, onAddToJournal
       } else {
         onMarkAsTaken(selectedSignal, outcome);
       }
-      
-      // Remove signal from active signals
-      const updatedMessages = JSON.parse(localStorage.getItem('telegram_messages') || '[]')
-        .filter((msg: any) => msg.id.toString() !== selectedSignal.id);
-      localStorage.setItem('telegram_messages', JSON.stringify(updatedMessages));
       
       setSignals(prevSignals => prevSignals.filter(s => s.id !== selectedSignal.id));
     }

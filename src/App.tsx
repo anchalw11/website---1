@@ -11,6 +11,8 @@ import TradingPlanGeneration from './components/TradingPlanGenerator';
 import PaymentFlow from './components/PaymentFlow';
 import Questionnaire from './components/Questionnaire';
 import RiskManagementPage from './components/RiskManagementPage';
+import RiskManagementPlan from './components/RiskManagementPlan';
+import UploadScreenshot from './components/UploadScreenshot';
 import TradeMentor from './components/TradeMentor';
 import Dashboard from './components/Dashboard';
 import DashboardConcept1 from './components/DashboardConcept1';
@@ -95,6 +97,8 @@ const AppContent = () => {
         <Route path="/payment" element={<PaymentFlow />} />
         <Route path="/questionnaire" element={<Questionnaire />} />
         <Route path="/risk-management" element={<RiskManagementPage />} />
+        <Route path="/risk-management-plan" element={<RiskManagementPlan />} />
+        <Route path="/upload-screenshot" element={<UploadScreenshot />} />
         <Route path="/setup/prop-firm" element={<PropFirmSelection />} />
         <Route path="/setup/account" element={<AccountConfiguration />} />
         <Route path="/setup/risk" element={<RiskConfiguration />} />

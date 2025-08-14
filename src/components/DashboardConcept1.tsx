@@ -357,9 +357,14 @@ const DashboardConcept1 = ({ onLogout }: { onLogout: () => void }) => {
     );
   }
 
-  const hasProAccess = ['pro', 'professional', 'elite', 'enterprise'].includes(user.membershipTier);
-  const hasJournalAccess = ['pro', 'professional', 'elite', 'enterprise'].includes(user.membershipTier);
-  const hasEnterpriseAccess = ['enterprise'].includes(user.membershipTier);
+  const hasProAccess = user && ['pro', 'professional', 'elite', 'enterprise'].includes(user.membershipTier);
+  const hasJournalAccess = user && ['pro', 'professional', 'elite', 'enterprise'].includes(user.membershipTier);
+  const hasEnterpriseAccess = user && ['enterprise'].includes(user.membershipTier);
+  const hasMultiAccountAccess = hasProAccess || hasEnterpriseAccess;
+
+  const handleAccountChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedAccount(e.target.value);
+  };
 
   useEffect(() => {
     if (tab) {
@@ -770,6 +775,19 @@ const DashboardConcept1 = ({ onLogout }: { onLogout: () => void }) => {
         <div className="neural-grid"></div>
         <div className="holo-sidebar">
             <div className="holo-logo">TraderEdgePro</div>
+            {hasMultiAccountAccess && (
+              <div className="p-4">
+                <select
+                  value={selectedAccount}
+                  onChange={handleAccountChange}
+                  className="w-full bg-gray-800 text-white p-2 rounded border border-gray-600"
+                >
+                  {userAccounts.map(account => (
+                    <option key={account.id} value={account.id}>{account.account_name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <nav className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-2">
                 {sidebarTabs.map((item) => (

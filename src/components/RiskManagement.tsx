@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TradingState, Trade } from '../trading/types';
+import { propFirms } from '../data/propFirms';
 
 interface QuestionnaireAnswers {
   tradesPerDay: string;
@@ -8,6 +10,10 @@ interface QuestionnaireAnswers {
   forexAssets: string[];
   hasAccount: 'yes' | 'no';
   accountEquity: number | string;
+  propFirm: string;
+  accountType: string;
+  accountSize: number | string;
+  riskPercentage: number;
 }
 
 interface RiskManagementProps {
@@ -15,6 +21,7 @@ interface RiskManagementProps {
 }
 
 const RiskManagement: React.FC<RiskManagementProps> = ({ tradingState }) => {
+  const navigate = useNavigate();
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState<QuestionnaireAnswers | null>(null);
   const [entryPrice, setEntryPrice] = useState('');
   const [stopLossPrice, setStopLossPrice] = useState('');
@@ -38,27 +45,28 @@ const RiskManagement: React.FC<RiskManagementProps> = ({ tradingState }) => {
 
   const generateRiskSettings = (answers: QuestionnaireAnswers) => {
     if (!answers) return null;
-    const settings = {
-        riskPerTrade: 1,
-        dailyLossLimit: 2,
-        consecutiveLossesLimit: 3,
-    };
+    const firm = propFirms.find(f => f.name === answers.propFirm);
+    if (!firm) return null;
 
-    const trades = answers.tradesPerDay;
-    if (trades === '1-2') {
-        settings.riskPerTrade = 1;
-        settings.dailyLossLimit = 2;
-    } else if (trades === '3-5') {
-        settings.riskPerTrade = 0.75;
-        settings.dailyLossLimit = 3;
-    } else if (trades === '6-10') {
-        settings.riskPerTrade = 0.5;
-        settings.dailyLossLimit = 4;
-    } else if (trades === '10+') {
-        settings.riskPerTrade = 0.25;
-        settings.dailyLossLimit = 5;
-    }
-    return settings;
+    const profitTarget = parseFloat(firm.profitTargets.split(',')[0].replace(/[^0-9.]/g, ''));
+    const maxLoss = parseFloat(firm.maximumLoss.replace(/[^0-9.]/g, ''));
+    const accountSize = typeof answers.accountSize === 'number' ? answers.accountSize : parseFloat(answers.accountSize);
+
+    const riskAmount = accountSize * (answers.riskPercentage / 100);
+    const profitAmount = riskAmount * 2; // Assuming a 1:2 risk-reward ratio
+
+    const tradesToPass = Math.ceil((accountSize * (profitTarget / 100)) / profitAmount);
+
+    return {
+      riskPerTrade: answers.riskPercentage,
+      dailyLossLimit: parseFloat(firm.dailyLossLimit.replace(/[^0-9.]/g, '')),
+      maxLoss,
+      profitTarget,
+      tradesToPass,
+      riskAmount,
+      profitAmount,
+      consecutiveLossesLimit: 3, // Default value
+    };
   };
 
   if (!tradingState || !editableRiskSettings) {
@@ -172,8 +180,23 @@ const RiskManagement: React.FC<RiskManagementProps> = ({ tradingState }) => {
     }
   };
 
+  const handleAnalyze = () => {
+    if (questionnaireAnswers) {
+      const plan = generateRiskSettings(questionnaireAnswers);
+      navigate('/risk-management-plan', { state: { answers: questionnaireAnswers, plan } });
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleAnalyze}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Analyze and Build Plan
+        </button>
+      </div>
       <div className="flex justify-end mb-4 space-x-4">
         <button
           onClick={exportToCSV}

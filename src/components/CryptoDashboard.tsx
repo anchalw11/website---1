@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import LivePriceFeed from './LivePriceFeed';
 import { getNextApiKey } from '../services/apiKeyManager';
 import TradePerformance from './TradePerformance';
+import api from '../api';
 
 const CryptoDashboard = ({ isBotRunning, setIsBotRunning }: { isBotRunning: boolean, setIsBotRunning: (isRunning: boolean) => void }) => {
   const [activeTab, setActiveTab] = useState('signals');
@@ -1080,27 +1081,23 @@ const CryptoDashboard = ({ isBotRunning, setIsBotRunning }: { isBotRunning: bool
                         signals.push(signal);
                     }
                     
-                    signals.forEach(signal => {
+                    signals.forEach(async (signal) => {
                         updateSMCStatistics(signal);
                         displayProfessionalSignal(signal);
                         log(`🎯 ${signal.signalType} signal for ${symbol} (R:R ${signal.riskReward}): Confidence: ${signal.confidence}%`, 'success');
                         
-                        // Save signal to localStorage
-                        const existingSignals = JSON.parse(localStorage.getItem('admin_generated_signals') || '[]');
-                        const signalKey = `${signal.symbol}-${signal.timeframe}-${signal.signalType}-${signal.entryPrice}-${signal.stopLoss}-${signal.takeProfit}`;
-                        const isDuplicate = existingSignals.some((s: any) => `${s.symbol}-${s.timeframe}-${s.signalType}-${s.entryPrice}-${s.stopLoss}-${s.takeProfit}` === signalKey);
-
-                        if (!isDuplicate) {
-                            const signalForStorage = {
-                                ...signal,
-                                timestamp: signal.timestamp.toISOString()
-                            };
-                            existingSignals.unshift(signalForStorage);
-                            localStorage.setItem('admin_generated_signals', JSON.stringify(existingSignals.slice(0, 100)));
-                            
-                            window.dispatchEvent(new CustomEvent('newSignalGenerated', { 
-                              detail: signalForStorage 
-                            }));
+                        try {
+                          await api.post('/trades', {
+                            pair: signal.symbol,
+                            type: signal.signalType,
+                            entry: signal.entryPrice,
+                            stopLoss: signal.stopLoss,
+                            takeProfit: [signal.takeProfit],
+                            id: signal.id,
+                          });
+                        } catch (error) {
+                          console.error('Error saving signal:', error);
+                          log(`❌ Error saving signal for ${signal.symbol}`, 'error');
                         }
                     });
                     
